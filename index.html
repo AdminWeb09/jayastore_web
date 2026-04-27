@@ -1,0 +1,896 @@
+<!doctype html>
+<html class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jaya Store</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .pulse-glow { animation: glow 2s infinite alternate; }
+    @keyframes glow { from { box-shadow: 0 0 5px rgba(99,102,241,0.3); } to { box-shadow: 0 0 20px rgba(99,102,241,0.5); } }
+    .payment-option input:checked + .payment-box { border-color: #6366f1; background-color: #312e81; }
+    @media print {
+      body, html { margin: 0 !important; padding: 0 !important; }
+      #app { display: none !important; }
+      #print-area { display: block !important; position: static !important; inset: auto !important; z-index: auto !important; background: white !important; padding: 2rem !important; }
+    }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full bg-slate-900 text-white overflow-auto">
+   <!-- Navigation -->
+   <nav class="sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-700/50 px-4 py-3">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+     <div class="flex items-center gap-2">
+      <div class="w-9 h-9 bg-indigo-500 rounded-lg flex items-center justify-center">
+       <i data-lucide="zap" class="w-5 h-5 text-white"></i>
+      </div><span id="nav-store-name" class="font-bold text-lg">Jaya Store</span>
+     </div>
+     <div class="flex gap-2">
+      <button onclick="showPage('store')" class="nav-btn px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-slate-700 transition bg-slate-700" data-page="store">Toko</button> 
+      <button onclick="showPage('invoices')" class="nav-btn px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-slate-700 transition" data-page="invoices">Invoice</button> 
+      <button onclick="showPage('admin')" class="nav-btn px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-slate-700 transition" data-page="admin"> 
+       <i data-lucide="settings" class="w-4 h-4 inline"></i> 
+      </button>
+     </div>
+    </div>
+   </nav>
+
+   <!-- Store Page -->
+   <div id="page-store" class="page max-w-6xl mx-auto px-4 py-6">
+    <div class="text-center mb-8">
+     <h1 id="hero-title" class="text-3xl font-extrabold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Jaya Store</h1>
+     <p id="hero-tagline" class="text-slate-400 mt-1">Pulsa & Kuota Murah</p>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="flex gap-2 mb-6 justify-center flex-wrap">
+     <button onclick="filterCategory('all')" class="cat-btn px-4 py-2 rounded-full text-sm font-medium bg-indigo-500 text-white transition">Semua</button> 
+     <button onclick="filterCategory('pulsa')" class="cat-btn px-4 py-2 rounded-full text-sm font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 transition">Pulsa</button> 
+     <button onclick="filterCategory('kuota')" class="cat-btn px-4 py-2 rounded-full text-sm font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 transition">Kuota</button> 
+     <button onclick="filterCategory('paket')" class="cat-btn px-4 py-2 rounded-full text-sm font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 transition">Paket</button>
+    </div>
+
+    <!-- Products Grid -->
+    <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    </div>
+   </div>
+
+   <!-- Invoices Page -->
+   <div id="page-invoices" class="page hidden max-w-4xl mx-auto px-4 py-6">
+    <h2 class="text-2xl font-bold mb-6">Riwayat Invoice</h2>
+    <div id="invoices-list"></div>
+   </div>
+
+   <!-- Admin Page -->
+   <div id="page-admin" class="page hidden max-w-4xl mx-auto px-4 py-6">
+    <!-- Login Gate -->
+    <div id="login-gate" class="mb-6">
+     <div class="max-w-md mx-auto bg-slate-800 rounded-xl p-6 border border-slate-700">
+      <h2 class="text-xl font-bold mb-2">Login Admin Panel</h2>
+      <p class="text-slate-400 text-sm mb-4">Masukkan username dan password</p>
+      <div class="space-y-3">
+       <div><label class="text-sm text-slate-400 block mb-1" for="login-username">Username</label> 
+        <input id="login-username" type="text" class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500" placeholder="admin">
+       </div>
+       <div><label class="text-sm text-slate-400 block mb-1" for="login-password">Password</label> 
+        <input id="login-password" type="password" class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500" placeholder="••••••">
+       </div>
+      </div>
+      <button onclick="checkLogin()" class="w-full mt-4 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-medium transition">Masuk</button>
+      <p id="login-error" class="text-red-400 text-xs mt-2 hidden">Username atau password salah!</p>
+     </div>
+    </div>
+
+    <div id="admin-gate" class="hidden">
+     <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-bold">Kelola Produk</h2>
+      <button onclick="showAddForm()" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-medium transition flex items-center gap-2"> 
+       <i data-lucide="plus" class="w-4 h-4"></i> Tambah 
+      </button>
+     </div>
+
+     <!-- Add/Edit Form -->
+     <div id="product-form" class="hidden bg-slate-800 rounded-xl p-5 mb-6 border border-slate-700 fade-in">
+      <h3 id="form-title" class="font-bold mb-4">Tambah Produk</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+       <div>
+        <label class="text-sm text-slate-400 block mb-1" for="f-name">Nama Produk</label> 
+        <input id="f-name" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500" placeholder="Telkomsel 10rb">
+       </div>
+       <div>
+        <label class="text-sm text-slate-400 block mb-1" for="f-category">Kategori</label> 
+        <select id="f-category" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500"> 
+         <option value="pulsa">Pulsa</option> 
+         <option value="kuota">Kuota</option> 
+         <option value="paket">Paket</option> 
+        </select>
+       </div>
+       <div>
+        <label class="text-sm text-slate-400 block mb-1" for="f-price">Harga (Rp)</label> 
+        <input id="f-price" type="number" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500" placeholder="12000">
+       </div>
+      </div>
+      <div class="flex gap-2 mt-4">
+       <button onclick="saveProduct()" id="btn-save" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-medium transition">Simpan</button> 
+       <button onclick="hideForm()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition">Batal</button>
+      </div>
+     </div>
+
+     <!-- Admin Products List -->
+     <div id="admin-products" class="space-y-2"></div>
+    </div>
+   </div>
+
+   <!-- Purchase Modal -->
+   <div id="purchase-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+    <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-slate-700 fade-in">
+     <h3 class="font-bold text-lg mb-1">Beli Produk</h3>
+     <p id="modal-product" class="text-indigo-400 font-medium mb-4"></p>
+     <div class="space-y-3">
+      <div>
+       <label class="text-sm text-slate-400 block mb-1" for="buy-name">Nama Pembeli</label> 
+       <input id="buy-name" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500" placeholder="Nama Anda">
+      </div>
+      <div>
+       <label class="text-sm text-slate-400 block mb-1" for="buy-phone">Nomor HP Tujuan</label> 
+       <input id="buy-phone" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:outline-none focus:border-indigo-500" placeholder="08xxxxxxxxxx">
+      </div>
+      <div>
+       <label class="text-sm text-slate-400 block mb-2">Metode Pembayaran</label>
+       <div class="grid grid-cols-2 gap-2">
+        <label class="payment-option cursor-pointer"> 
+         <input type="radio" name="payment" value="gopay" class="hidden" checked>
+         <div class="payment-box bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 rounded-lg p-3 text-center transition">
+          <div class="text-lg font-bold">💚</div>
+          <div class="text-xs font-medium mt-1">Gopay</div>
+         </div>
+        </label> 
+        <label class="payment-option cursor-pointer"> 
+         <input type="radio" name="payment" value="qris" class="hidden">
+         <div class="payment-box bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 rounded-lg p-3 text-center transition">
+          <div class="text-lg font-bold">📱</div>
+          <div class="text-xs font-medium mt-1">QRIS</div>
+         </div>
+        </label> 
+        <label class="payment-option cursor-pointer"> 
+         <input type="radio" name="payment" value="transfer" class="hidden">
+         <div class="payment-box bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 rounded-lg p-3 text-center transition">
+          <div class="text-lg font-bold">🏦</div>
+          <div class="text-xs font-medium mt-1">Transfer</div>
+         </div>
+        </label> 
+        <label class="payment-option cursor-pointer"> 
+         <input type="radio" name="payment" value="ovo" class="hidden">
+         <div class="payment-box bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 rounded-lg p-3 text-center transition">
+          <div class="text-lg font-bold">🟣</div>
+          <div class="text-xs font-medium mt-1">OVO</div>
+         </div>
+        </label>
+       </div>
+      </div>
+     </div>
+     <div class="flex gap-2 mt-5">
+      <button onclick="confirmPurchase()" id="btn-confirm" class="flex-1 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-medium transition">Beli Sekarang</button> 
+      <button onclick="closeModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition">Batal</button>
+     </div>
+    </div>
+   </div>
+
+   <!-- Invoice Modal -->
+   <div id="invoice-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+    <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-slate-700 fade-in">
+     <div class="text-center mb-4">
+      <div class="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
+       <i data-lucide="check-circle" class="w-6 h-6 text-green-400"></i>
+      </div>
+      <h3 class="font-bold text-lg">Pembelian Berhasil!</h3>
+     </div>
+     <div id="invoice-detail" class="bg-slate-900 rounded-xl p-4 space-y-2 text-sm"></div>
+     <div class="flex gap-2 mt-4">
+      <button onclick="downloadInvoicePDF()" class="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg font-medium transition flex items-center justify-center gap-2">
+       <i data-lucide="download" class="w-4 h-4"></i>Download PDF
+      </button> 
+      <button onclick="closeInvoice()" class="flex-1 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-medium transition">Tutup</button>
+     </div>
+    </div>
+   </div>
+
+   <!-- Toast -->
+   <div id="toast" class="hidden fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg font-medium text-sm shadow-lg fade-in"></div>
+
+   <!-- Print Area -->
+   <div id="print-area" class="hidden fixed inset-0 z-40 p-8 bg-white text-black overflow-auto">
+    <div class="max-w-2xl mx-auto">
+     <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold">INVOICE</h1>
+      <p id="print-store" class="text-lg font-semibold mt-1">Jaya Store</p>
+     </div>
+     <div class="border-b-2 border-black pb-4 mb-6">
+      <div class="grid grid-cols-2 gap-4 text-sm">
+       <div>
+        <p class="font-bold mb-2">INFORMASI PEMBELI:</p>
+        <p id="print-buyer" class="mb-1"></p>
+        <p id="print-phone" class="mb-1"></p>
+       </div>
+       <div class="text-right">
+        <p class="font-bold mb-2">INFORMASI INVOICE:</p>
+        <p id="print-invoice" class="mb-1"></p>
+        <p id="print-date" class="mb-1"></p>
+       </div>
+      </div>
+     </div>
+     <table class="w-full mb-6 text-sm">
+      <thead>
+       <tr class="border-b-2 border-black">
+        <th class="text-left py-2 font-bold">Deskripsi</th>
+        <th class="text-right py-2 font-bold">Harga</th>
+       </tr>
+      </thead>
+      <tbody>
+       <tr class="border-b border-gray-300">
+        <td class="py-2" id="print-product"></td>
+        <td class="text-right py-2" id="print-price"></td>
+       </tr>
+      </tbody>
+     </table>
+     <div class="flex justify-end mb-8">
+      <div class="w-64">
+       <div class="flex justify-between py-2 border-t-2 border-black font-bold text-lg">
+        <span>TOTAL:</span> 
+        <span id="print-total"></span>
+       </div>
+      </div>
+     </div>
+     <div class="grid grid-cols-2 gap-8 text-sm mb-8">
+      <div>
+       <p class="font-bold mb-2">METODE PEMBAYARAN:</p>
+       <p id="print-payment" class="text-lg font-semibold"></p>
+      </div>
+      <div>
+       <p class="font-bold mb-2">STATUS:</p>
+       <p class="text-lg font-semibold text-green-600">✓ BERHASIL</p>
+      </div>
+     </div>
+     <div class="border-t-2 border-black pt-4 text-center text-xs text-gray-600">
+      <p>Terima kasih telah berbelanja di Jaya Store</p>
+      <p>Tanggal Cetak: <span id="print-time"></span></p>
+     </div>
+    </div>
+   </div>
+  </div>
+
+  <script>
+  // === LOCALSTORAGE DATA MANAGER ===
+  const DATA_KEY = 'jaya_store_data_v2';
+  const MAX_DATA = 950; // Leave some room for overhead
+
+  function loadData() {
+    try {
+      const data = localStorage.getItem(DATA_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveData(data) {
+    try {
+      localStorage.setItem(DATA_KEY, JSON.stringify(data));
+      return { isOk: true };
+    } catch {
+      return { isOk: false, error: 'Storage quota exceeded' };
+    }
+  }
+
+  function createDataItem(item) {
+    const data = loadData();
+    if (data.length >= MAX_DATA) {
+      return { isOk: false, error: 'Storage limit reached' };
+    }
+    data.push({ ...item, __localId: Date.now() + Math.random().toString(36).substr(2, 9) });
+    return saveData(data);
+  }
+
+  function updateDataItem(updatedItem) {
+    const data = loadData();
+    const index = data.findIndex(item => item.__localId === updatedItem.__localId);
+    if (index !== -1) {
+      data[index] = { ...data[index], ...updatedItem };
+      return saveData(data);
+    }
+    return { isOk: false, error: 'Item not found' };
+  }
+
+  function deleteDataItem(deletedItem) {
+    const data = loadData();
+    const filtered = data.filter(item => item.__localId !== deletedItem.__localId);
+    return saveData(filtered);
+  }
+
+  // === APP DATA ===
+  const defaultProducts = [
+    { id: 'p1', name: 'Telkomsel 5rb', category: 'pulsa', price: 6500 },
+    { id: 'p2', name: 'Telkomsel 10rb', category: 'pulsa', price: 11500 },
+    { id: 'p3', name: 'Telkomsel 25rb', category: 'pulsa', price: 26000 },
+    { id: 'p4', name: 'Telkomsel 50rb', category: 'pulsa', price: 50500 },
+    { id: 'p5', name: 'XL 10rb', category: 'pulsa', price: 11000 },
+    { id: 'p6', name: 'Indosat 10rb', category: 'pulsa', price: 11200 },
+    { id: 'p7', name: 'Kuota 1GB 30hr', category: 'kuota', price: 15000 },
+    { id: 'p8', name: 'Kuota 3GB 30hr', category: 'kuota', price: 35000 },
+    { id: 'p9', name: 'Kuota 5GB 30hr', category: 'kuota', price: 50000 },
+    { id: 'p10', name: 'Paket Nelpon 100mnt', category: 'paket', price: 25000 },
+    { id: 'p11', name: 'Paket SMS 200sms', category: 'paket', price: 12000 },
+  ];
+
+  let products = [...defaultProducts];
+  let transactions = [];
+  let allData = [];
+  let currentCategory = 'all';
+  let editingProduct = null;
+  let purchasingProduct = null;
+  let adminUnlocked = false;
+  const ADMIN_USERNAME = 'admin';
+  const ADMIN_PASSWORD = 'admin';
+
+  // === INIT ===
+  function initApp() {
+    allData = loadData();
+    updateAppFromData();
+    renderStore();
+    renderInvoices();
+    showPage('store');
+    lucide.createIcons();
+    console.log('✅ Jaya Store loaded with localStorage');
+  }
+
+  function updateAppFromData() {
+    const productOverrides = allData.filter(d => d.type === 'product');
+    transactions = allData.filter(d => d.type === 'transaction');
+
+    // Build override map
+    const overrideMap = {};
+    const deletedNames = new Set();
+    
+    productOverrides.forEach(p => {
+      if (p.status === 'deleted') {
+        deletedNames.add(p.product_name);
+      } else {
+        overrideMap[p.product_name] = p;
+      }
+    });
+
+    // Start with defaults, apply overrides, remove deleted
+    products = defaultProducts
+      .filter(p => !deletedNames.has(p.name))
+      .map(p => {
+        const override = overrideMap[p.name];
+        return override ? { 
+          ...p, 
+          price: override.price,
+          dataRef: override 
+        } : p;
+      });
+
+    // Add custom products
+    productOverrides
+      .filter(p => p.status === 'added')
+      .forEach(po => {
+        const exists = products.find(p => p.name === po.product_name);
+        if (!exists) {
+          products.push({ 
+            id: 'custom_' + po.__localId, 
+            name: po.product_name, 
+            category: po.category, 
+            price: po.price, 
+            dataRef: po 
+          });
+        }
+      });
+  }
+
+  // === NAVIGATION ===
+  function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+    document.getElementById('page-' + page).classList.remove('hidden');
+    document.querySelectorAll('.nav-btn').forEach(b => {
+      b.classList.remove('bg-slate-700');
+      if (b.dataset.page === page) b.classList.add('bg-slate-700');
+    });
+  }
+
+  // === STORE ===
+  function filterCategory(cat) {
+    currentCategory = cat;
+    document.querySelectorAll('.cat-btn').forEach(b => {
+      const isActive = (cat === 'all' && b.textContent === 'Semua') || 
+                      b.textContent.toLowerCase().includes(cat);
+      b.className = `cat-btn px-4 py-2 rounded-full text-sm font-medium transition ${isActive 
+        ? 'bg-indigo-500 text-white' 
+        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
+    });
+    renderStore();
+  }
+
+  function renderStore() {
+    const grid = document.getElementById('products-grid');
+    const filtered = currentCategory === 'all' 
+      ? products 
+      : products.filter(p => p.category === currentCategory);
+    
+    grid.innerHTML = filtered.map(p => `
+      <div class="bg-slate-800 rounded-xl p-4 border border-slate-700 hover:border-indigo-500/50 transition cursor-pointer surface-card" 
+           onclick="openPurchase('${p.name.replace(/'/g, "\\'")}', ${p.price}, '${p.category}')">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center 
+            ${p.category === 'pulsa' ? 'bg-green-500/20' : p.category === 'kuota' ? 'bg-blue-500/20' : 'bg-orange-500/20'}">
+            <i data-lucide="${p.category === 'pulsa' ? 'smartphone' : p.category === 'kuota' ? 'wifi' : 'package'}" 
+               class="w-5 h-5 ${p.category === 'pulsa' ? 'text-green-400' : p.category === 'kuota' ? 'text-blue-400' : 'text-orange-400'}"></i>
+          </div>
+          <span class="text-xs font-medium px-2 py-0.5 rounded-full 
+            ${p.category === 'pulsa' ? 'bg-green-500/20 text-green-400' : p.category === 'kuota' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'}">
+            ${p.category.charAt(0).toUpperCase() + p.category.slice(1)}
+          </span>
+        </div>
+        <h3 class="font-semibold">${p.name}</h3>
+        <p class="text-indigo-400 font-bold mt-1">Rp ${p.price.toLocaleString('id-ID')}</p>
+      </div>
+    `).join('');
+    lucide.createIcons();
+  }
+
+  // === PURCHASE ===
+  function openPurchase(name, price, category) {
+    purchasingProduct = { name, price, category };
+    document.getElementById('modal-product').textContent = `${name} - Rp ${price.toLocaleString('id-ID')}`;
+    document.getElementById('buy-name').value = '';
+    document.getElementById('buy-phone').value = '';
+    document.getElementById('purchase-modal').classList.remove('hidden');
+  }
+
+  function closeModal() {
+    document.getElementById('purchase-modal').classList.add('hidden');
+  }
+
+  async function confirmPurchase() {
+    const name = document.getElementById('buy-name').value.trim();
+    const phone = document.getElementById('buy-phone').value.trim();
+    if (!name || !phone) { 
+      showToast('Lengkapi data pembeli!', 'red'); 
+      return; 
+    }
+
+    const btn = document.getElementById('btn-confirm');
+    btn.disabled = true; 
+    btn.textContent = 'Memproses...';
+
+    const invoiceId = 'INV-' + Date.now().toString(36).toUpperCase();
+    const newTransaction = {
+      type: 'transaction',
+      category: purchasingProduct.category,
+      product_name: purchasingProduct.name,
+      price: purchasingProduct.price,
+      status: invoiceId,
+      buyer_name: name,
+      buyer_phone: phone,
+      created_at: new Date().toISOString()
+    };
+
+    const result = createDataItem(newTransaction);
+    
+    btn.disabled = false; 
+    btn.textContent = 'Beli Sekarang';
+    closeModal();
+
+    if (result.isOk) {
+      allData = loadData(); // Refresh data
+      transactions = allData.filter(d => d.type === 'transaction');
+      showInvoiceModal(invoiceId, purchasingProduct.name, purchasingProduct.price, name, phone);
+      renderInvoices();
+      showToast('Transaksi berhasil disimpan!', 'green');
+    } else {
+      showToast('Gagal menyimpan transaksi! (' + (result.error || 'Unknown') + ')', 'red');
+    }
+  }
+
+  function showInvoiceModal(id, product, price, buyer, phone) {
+    const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
+    const paymentLabels = { gopay: 'Gopay', qris: 'QRIS', transfer: 'Bank Transfer', ovo: 'OVO' };
+    
+    document.getElementById('invoice-detail').innerHTML = `
+      <div class="flex justify-between"><span class="text-slate-400">Invoice</span><span class="font-mono font-bold text-indigo-400">${id}</span></div>
+      <div class="flex justify-between"><span class="text-slate-400">Produk</span><span>${product}</span></div>
+      <div class="flex justify-between"><span class="text-slate-400">Harga</span><span class="font-bold">Rp ${price.toLocaleString('id-ID')}</span></div>
+      <div class="flex justify-between"><span class="text-slate-400">Pembeli</span><span>${buyer}</span></div>
+      <div class="flex justify-between"><span class="text-slate-400">No. HP</span><span>${phone}</span></div>
+      <div class="flex justify-between"><span class="text-slate-400">Pembayaran</span><span class="text-blue-400 font-medium">${paymentLabels[paymentMethod]}</span></div>
+      <div class="flex justify-between"><span class="text-slate-400">Tanggal</span><span>${new Date().toLocaleDateString('id-ID')}</span></div>
+      <div class="flex justify-between"><span class="text-slate-400">Status</span><span class="text-green-400 font-medium">✓ Berhasil</span></div>
+    `;
+    
+    window.lastInvoiceData = { 
+      id, product, price, buyer, phone, 
+      paymentMethod, paymentLabels,
+      storeName: document.getElementById('nav-store-name').textContent 
+    };
+    
+    document.getElementById('invoice-modal').classList.remove('hidden');
+  }
+
+  function downloadInvoicePDF() {
+    if (!window.lastInvoiceData) return;
+    const d = window.lastInvoiceData;
+    
+    const element = document.createElement('div');
+    element.style.padding = '2rem';
+    element.style.fontFamily = 'Plus Jakarta Sans, Arial, sans-serif';
+    element.style.backgroundColor = 'white';
+    element.style.color = 'black';
+    
+    element.innerHTML = `
+      <div style="max-width: 600px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+          <h1 style="font-size: 2rem; font-weight: bold; margin: 0;">INVOICE</h1>
+          <p style="font-size: 1.125rem; font-weight: 600; margin-top: 0.5rem; margin-bottom: 0;">${d.storeName}</p>
+        </div>
+        <div style="border-bottom: 2px solid black; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.875rem;">
+            <div>
+              <p style="font-weight: bold; margin-bottom: 0.5rem; margin-top: 0;">INFORMASI PEMBELI:</p>
+              <p style="margin-bottom: 0.25rem;">${d.buyer}</p>
+              <p style="margin-bottom: 0.25rem;">${d.phone}</p>
+            </div>
+            <div style="text-align: right;">
+              <p style="font-weight: bold; margin-bottom: 0.5rem; margin-top: 0;">INFORMASI INVOICE:</p>
+              <p style="margin-bottom: 0.25rem;">${d.id}</p>
+              <p style="margin-bottom: 0.25rem;">${new Date().toLocaleDateString('id-ID')}</p>
+            </div>
+          </div>
+        </div>
+        <table style="width: 100%; margin-bottom: 1.5rem; font-size: 0.875rem; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 2px solid black;">
+              <th style="text-align: left; padding: 0.5rem 0; font-weight: bold;">Deskripsi</th>
+              <th style="text-align: right; padding: 0.5rem 0; font-weight: bold;">Harga</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #d1d5db;">
+              <td style="padding: 0.5rem 0;">${d.product}</td>
+              <td style="text-align: right; padding: 0.5rem 0;">Rp ${d.price.toLocaleString('id-ID')}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 2rem;">
+          <div style="width: 16rem;">
+            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-top: 2px solid black; font-weight: bold; font-size: 1.125rem;">
+              <span>TOTAL:</span>
+              <span>Rp ${d.price.toLocaleString('id-ID')}</span>
+            </div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; font-size: 0.875rem; margin-bottom: 2rem;">
+          <div>
+            <p style="font-weight: bold; margin-bottom: 0.5rem; margin-top: 0;">METODE PEMBAYARAN:</p>
+            <p style="font-size: 1.125rem; font-weight: 600; margin: 0;">${d.paymentLabels[d.paymentMethod]}</p>
+          </div>
+          <div>
+            <p style="font-weight: bold; margin-bottom: 0.5rem; margin-top: 0;">STATUS:</p>
+            <p style="font-size: 1.125rem; font-weight: 600; color: #16a34a; margin: 0;">✓ BERHASIL</p>
+          </div>
+        </div>
+        <div style="border-top: 2px solid black; padding-top: 1rem; text-align: center; font-size: 0.75rem; color: #666;">
+          <p>Terima kasih telah berbelanja di Jaya Store</p>
+          <p>Tanggal Cetak: ${new Date().toLocaleString('id-ID')}</p>
+        </div>
+      </div>
+    `;
+    
+    const opt = {
+      margin: 0,
+      filename: `Invoice-${d.id}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    html2pdf().set(opt).from(element).save();
+  }
+
+  function closeInvoice() { 
+    document.getElementById('invoice-modal').classList.add('hidden'); 
+  }
+
+  // === INVOICES ===
+  function renderInvoices() {
+    const list = document.getElementById('invoices-list');
+    if (transactions.length === 0) {
+      list.innerHTML = '<p class="text-slate-500 text-center py-12">Belum ada transaksi</p>';
+      return;
+    }
+    const sorted = [...transactions].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    list.innerHTML = sorted.map(t => `
+      <div class="bg-slate-800 rounded-xl p-4 border border-slate-700 mb-3 fade-in">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="font-mono text-xs text-indigo-400 font-bold">${t.status}</p>
+            <p class="font-semibold mt-1">${t.product_name}</p>
+            <p class="text-sm text-slate-400">${t.buyer_name} • ${t.buyer_phone}</p>
+          </div>
+          <div class="text-right">
+            <p class="font-bold">Rp ${Number(t.price).toLocaleString('id-ID')}</p>
+            <p class="text-xs text-slate-500">${new Date(t.created_at).toLocaleDateString('id-ID')}</p>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // === ADMIN ===
+  function checkLogin() {
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value.trim();
+    const errorMsg = document.getElementById('login-error');
+    
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      adminUnlocked = true;
+      document.getElementById('login-gate').classList.add('hidden');
+      document.getElementById('admin-gate').classList.remove('hidden');
+      renderAdminProducts();
+      lucide.createIcons();
+      showToast('Login berhasil!', 'green');
+    } else {
+      errorMsg.classList.remove('hidden');
+      document.getElementById('login-username').value = '';
+      document.getElementById('login-password').value = '';
+      setTimeout(() => errorMsg.classList.add('hidden'), 3000);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const usernameInput = document.getElementById('login-username');
+    const passwordInput = document.getElementById('login-password');
+    if (usernameInput) {
+      usernameInput.addEventListener('keypress', (e) => { 
+        if (e.key === 'Enter') document.getElementById('login-password').focus(); 
+      });
+    }
+    if (passwordInput) {
+      passwordInput.addEventListener('keypress', (e) => { 
+        if (e.key === 'Enter') checkLogin(); 
+      });
+    }
+  });
+
+  function showAddForm() {
+    editingProduct = null;
+    document.getElementById('form-title').textContent = 'Tambah Produk';
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-category').value = 'pulsa';
+    document.getElementById('f-price').value = '';
+    document.getElementById('product-form').classList.remove('hidden');
+  }
+
+  function hideForm() { 
+    document.getElementById('product-form').classList.add('hidden'); 
+  }
+
+  function editProduct(name, category, price, dataRef) {
+    editingProduct = dataRef || { name, category, price, __localId: null };
+    document.getElementById('form-title').textContent = 'Edit Produk';
+    document.getElementById('f-name').value = name;
+    document.getElementById('f-category').value = category;
+    document.getElementById('f-price').value = price;
+    document.getElementById('product-form').classList.remove('hidden');
+  }
+
+  async function saveProduct() {
+    const name = document.getElementById('f-name').value.trim();
+    const category = document.getElementById('f-category').value;
+    const price = parseInt(document.getElementById('f-price').value);
+    
+    if (!name || !price || price <= 0) { 
+      showToast('Lengkapi form dengan harga valid!', 'red'); 
+      return; 
+    }
+
+    const btn = document.getElementById('btn-save');
+    btn.disabled = true; 
+    btn.textContent = 'Menyimpan...';
+
+    let result;
+    if (editingProduct && editingProduct.__localId) {
+      // Update existing
+      result = updateDataItem({ 
+        ...editingProduct, 
+        product_name: name, 
+        category, 
+        price 
+      });
+    } else {
+      // Create new
+      if (allData.length >= MAX_DATA) { 
+        showToast('Limit data tercapai! Hapus beberapa data lama.', 'red'); 
+        btn.disabled = false; 
+        btn.textContent = 'Simpan'; 
+        return; 
+      }
+      result = createDataItem({ 
+        type: 'product', 
+        category, 
+        product_name: name, 
+        price, 
+        status: 'added',
+        buyer_name: '', 
+        buyer_phone: '', 
+        created_at: new Date().toISOString() 
+      });
+    }
+
+    btn.disabled = false; 
+    btn.textContent = 'Simpan';
+    
+    if (result.isOk) { 
+      allData = loadData();
+      updateAppFromData();
+      hideForm();
+      renderStore();
+      renderAdminProducts();
+      showToast('Produk disimpan!', 'green'); 
+    } else {
+      showToast('Gagal menyimpan! (' + (result.error || 'Unknown') + ')', 'red');
+    }
+  }
+
+  async function deleteProduct(idx) {
+    const product = products[idx];
+    const container = document.getElementById('admin-products');
+    const productEl = container.children[idx];
+    const existingConfirm = productEl.querySelector('.delete-confirm');
+    
+    if (existingConfirm) return;
+
+    const confirmUI = document.createElement('div');
+    confirmUI.className = 'delete-confirm absolute inset-0 bg-black/80 rounded-lg flex items-center justify-center gap-2 z-10';
+    confirmUI.innerHTML = `
+      <p class="text-sm font-medium mr-2">Hapus "${product.name}"?</p>
+      <button type="button" onclick="confirmDelete(${idx})" class="px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-xs font-medium transition">Ya</button>
+      <button type="button" onclick="cancelDelete(${idx})" class="px-3 py-1 bg-slate-600 hover:bg-slate-700 rounded text-xs font-medium transition">Batal</button>
+    `;
+    
+    productEl.style.position = 'relative';
+    productEl.appendChild(confirmUI);
+  }
+
+  async function confirmDelete(idx) {
+    const product = products[idx];
+    const container = document.getElementById('admin-products');
+    const productEl = container.children[idx];
+    const confirmUI = productEl.querySelector('.delete-confirm');
+    
+    confirmUI.innerHTML = `<p class="text-sm text-slate-400">Menghapus...</p>`;
+
+    let result;
+    if (product.dataRef && product.dataRef.__localId) {
+      result = deleteDataItem(product.dataRef);
+    } else {
+      if (allData.length >= MAX_DATA) { 
+        showToast('Limit data tercapai!', 'red'); 
+        confirmUI.remove();
+        return; 
+      }
+      result = createDataItem({ 
+        type: 'product', 
+        category: product.category, 
+        product_name: product.name, 
+        price: product.price, 
+        status: 'deleted',
+        buyer_name: '', 
+        buyer_phone: '', 
+        created_at: new Date().toISOString() 
+      });
+    }
+
+    confirmUI.remove();
+    productEl.style.position = '';
+    
+    if (result.isOk) {
+      allData = loadData();
+      updateAppFromData();
+      renderStore();
+      renderAdminProducts();
+      showToast('Produk dihapus!', 'green');
+    } else {
+      showToast('Gagal menghapus!', 'red');
+    }
+  }
+
+  function cancelDelete(idx) {
+    const container = document.getElementById('admin-products');
+    const productEl = container.children[idx];
+    const confirmUI = productEl.querySelector('.delete-confirm');
+    if (confirmUI) {
+      confirmUI.remove();
+      productEl.style.position = '';
+    }
+  }
+
+  function renderAdminProducts() {
+    if (!adminUnlocked) return;
+    const container = document.getElementById('admin-products');
+    container.innerHTML = products.map((p, idx) => `
+      <div class="flex items-center justify-between bg-slate-800 rounded-lg p-3 border border-slate-700">
+        <div>
+          <span class="font-medium">${p.name}</span>
+          <span class="text-xs ml-2 px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">${p.category}</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="font-bold text-sm">Rp ${p.price.toLocaleString('id-ID')}</span>
+          <button type="button" onclick="editProductHandler(${idx})" class="p-1.5 hover:bg-slate-700 rounded-lg transition" title="Edit">
+            <i data-lucide="edit" class="w-4 h-4 text-slate-400"></i>
+          </button>
+          <button type="button" onclick="deleteProduct(${idx})" class="p-1.5 hover:bg-red-500/20 rounded-lg transition" title="Hapus">
+            <i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+    lucide.createIcons();
+  }
+
+  function editProductHandler(idx) {
+    const p = products[idx];
+    editProduct(p.name, p.category, p.price, p.dataRef);
+  }
+
+  // === TOAST ===
+  function showToast(msg, color = 'blue') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg font-medium text-sm shadow-lg fade-in text-white ${
+      color === 'green' ? 'bg-green-500' : 
+      color === 'red' ? 'bg-red-500' : 
+      'bg-indigo-500'
+    }`;
+    t.classList.remove('hidden');
+    setTimeout(() => t.classList.add('hidden'), 4000);
+  }
+
+  // === STORAGE INFO ===
+  window.clearAllData = () => {
+    if (confirm('⚠️ HAPUS SEMUA DATA? Ini akan menghapus semua transaksi dan produk custom!')) {
+      localStorage.removeItem(DATA_KEY);
+      allData = [];
+      transactions = [];
+      products = [...defaultProducts];
+      renderStore();
+      renderInvoices();
+      renderAdminProducts();
+      showToast('✅ Semua data dihapus!', 'green');
+    }
+  };
+
+  window.exportData = () => {
+    const data = localStorage.getItem(DATA_KEY);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `jaya-store-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Data diekspor!', 'green');
+  };
+
+  // === START APP ===
+  initApp();
+  </script>
+ </body>
+</html>
